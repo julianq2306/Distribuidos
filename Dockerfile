@@ -1,12 +1,16 @@
-FROM node:18-alpine
+FROM python:3.11-slim
 
 WORKDIR /app
 
-COPY package*.json ./
-RUN npm install --production
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    netcat-openbsd
 
-COPY src/ ./src/
+COPY requirements.txt .
 
-EXPOSE 3000
+RUN pip install --no-cache-dir -r requirements.txt
 
-CMD ["node", "src/index.js"]
+COPY . .
+
+CMD sh -c "until nc -z postgres 5432; do echo 'Esperando PostgreSQL...'; sleep 2; done; uvicorn main:app --host 0.0.0.0 --port 8001"
