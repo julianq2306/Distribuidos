@@ -9,3 +9,16 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8002"]
+=======
+FROM node:18-alpine
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm install --production
+
+COPY src/ ./src/
+
+EXPOSE 3000
+
+CMD ["node", "src/index.js"]
