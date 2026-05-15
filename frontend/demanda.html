@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestión de Demanda — Clínica</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+  <link rel="stylesheet" href="css/demanda.css">
+</head>
+<body>
+<div class="dash">
+
+  <div class="header">
+    <div class="header-left">
+      <div class="header-icon">
+        <i class="ti ti-activity-heartbeat"></i>
+      </div>
+      <div>
+        <h1>Sistema de Gestión de Medicamento</h1>
+        <p>Monitoreo en tiempo real · Predicción de consumo · Control de inventario clínico</p>
+      </div>
+    </div>
+    <div class="header-right">
+      <span class="badge-live" id="badge-live"><span class="dot"></span> Sistema activo</span>
+      <button class="refresh-btn" onclick="loadAll()">
+        <i class="ti ti-refresh"></i> Actualizar datos
+      </button>
+    </div>
+  </div>
+
+  <div class="tabs-wrap">
+    <button class="tab-btn active" data-tab="tab-dashboard">
+      <i class="ti ti-layout-dashboard"></i> Resumen general
+    </button>
+    <button class="tab-btn" data-tab="tab-prediccion">
+      <i class="ti ti-trending-up"></i> Predicción de demanda
+    </button>
+    <button class="tab-btn" data-tab="tab-riesgo">
+      <i class="ti ti-alert-triangle"></i> Riesgo de agotamiento
+    </button>
+    <button class="tab-btn" data-tab="tab-top">
+      <i class="ti ti-chart-bar"></i> Top consumo
+    </button>
+  </div>
+
+  <!-- TAB: DASHBOARD -->
+  <div id="tab-dashboard" class="tab-panel active">
+    <div class="section-title">Indicadores clave</div>
+    <div class="metrics">
+      <div class="metric info">
+        <div class="metric-icon"><i class="ti ti-pill"></i></div>
+        <div class="metric-value" id="m-total">—</div>
+        <div class="metric-label">Medicamentos activos</div>
+        <div class="metric-desc">Total en inventario</div>
+      </div>
+      <div class="metric danger">
+        <div class="metric-icon"><i class="ti ti-packages"></i></div>
+        <div class="metric-value" id="m-stock">—</div>
+        <div class="metric-label">Stock bajo</div>
+        <div class="metric-desc">Por debajo del mínimo</div>
+      </div>
+      <div class="metric danger">
+        <div class="metric-icon"><i class="ti ti-calendar-x"></i></div>
+        <div class="metric-value" id="m-venc">—</div>
+        <div class="metric-label">Vencidos</div>
+        <div class="metric-desc">Requieren retiro inmediato</div>
+      </div>
+      <div class="metric warning">
+        <div class="metric-icon"><i class="ti ti-clock"></i></div>
+        <div class="metric-value" id="m-prox">—</div>
+        <div class="metric-label">Próx. a vencer</div>
+        <div class="metric-desc">Vencen en 30 días</div>
+      </div>
+      <div class="metric warning">
+        <div class="metric-icon"><i class="ti ti-bell"></i></div>
+        <div class="metric-value" id="m-alertas">—</div>
+        <div class="metric-label">Alertas activas</div>
+        <div class="metric-desc">Requieren atención</div>
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title"><i class="ti ti-bell-ringing"></i> Alertas del sistema</div>
+            <div class="card-subtitle">Notificaciones activas que requieren atención inmediata</div>
+          </div>
+        </div>
+        <div id="alertas-area"><div class="loading"><i class="ti ti-loader"></i><span>Cargando alertas...</span></div></div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:14px;">
+        <div class="card" style="flex:1; margin-bottom:0;">
+          <div class="card-header">
+            <div>
+              <div class="card-title"><i class="ti ti-packages"></i> Medicamentos con stock bajo</div>
+              <div class="card-subtitle">Productos por debajo del nivel mínimo requerido</div>
+            </div>
+          </div>
+          <div id="stock-resumen"><div class="loading"><i class="ti ti-loader"></i><span>Cargando...</span></div></div>
+        </div>
+        <div class="card" style="flex:1; margin-bottom:0;">
+          <div class="card-header">
+            <div>
+              <div class="card-title"><i class="ti ti-calendar-x"></i> Control de vencimientos</div>
+              <div class="card-subtitle">Medicamentos vencidos o próximos a vencer en 30 días</div>
+            </div>
+          </div>
+          <div id="venc-resumen"><div class="loading"><i class="ti ti-loader"></i><span>Cargando...</span></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: PREDICCIÓN -->
+  <div id="tab-prediccion" class="tab-panel">
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title"><i class="ti ti-trending-up"></i> Predicción de demanda — <span id="pred-titulo"></span></div>
+          <div class="card-subtitle">Estimación de consumo para los próximos 7 días basada en datos históricos</div>
+        </div>
+      </div>
+      <div class="med-select-wrap">
+        <label><i class="ti ti-pill" style="margin-right:6px;"></i> Medicamento:</label>
+        <select id="med-select"><option>Cargando medicamentos...</option></select>
+      </div>
+      <div id="pred-area"><div class="loading"><i class="ti ti-loader"></i><span>Calculando predicción...</span></div></div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title"><i class="ti ti-chart-line"></i> Gráfica de tendencia</div>
+          <div class="card-subtitle">Visualización del consumo estimado día a día</div>
+        </div>
+      </div>
+      <div class="chart-wrap"><canvas id="predChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- TAB: RIESGO -->
+  <div id="tab-riesgo" class="tab-panel">
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title"><i class="ti ti-flame"></i> Riesgo de agotamiento de stock</div>
+          <div class="card-subtitle">Días estimados antes de quedarse sin stock según el consumo diario registrado</div>
+        </div>
+      </div>
+      <div id="riesgo-area"><div class="loading"><i class="ti ti-loader"></i><span>Calculando riesgos...</span></div></div>
+    </div>
+  </div>
+
+  <!-- TAB: TOP CONSUMO -->
+  <div id="tab-top" class="tab-panel">
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title"><i class="ti ti-award"></i> Top 10 — Medicamentos más consumidos</div>
+          <div class="card-subtitle">Ranking basado en el historial total de consumo registrado en el sistema</div>
+        </div>
+      </div>
+      <div id="top-area"><div class="loading"><i class="ti ti-loader"></i><span>Cargando ranking...</span></div></div>
+    </div>
+  </div>
+
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="js/demanda.js"></script>
+</body>
+</html>

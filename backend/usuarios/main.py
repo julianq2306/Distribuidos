@@ -7,7 +7,7 @@ app = FastAPI()
 
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "postgresql://sdi_user:sdi_pass@postgres:5432/sdi_db"
+    "postgresql://postgres.vzlrzsupvzyiqwetmgyt:distribuidos123@aws-1-us-east-2.pooler.supabase.com:5432/postgres"
 )
 
 class Login(BaseModel):

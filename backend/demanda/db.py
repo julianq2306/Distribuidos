@@ -3,7 +3,7 @@ import asyncpg
 
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "postgresql://sdi_user:sdi_pass@postgres:5432/sdi_db"
+    "postgresql://postgres.vzlrzsupvzyiqwetmgyt:distribuidos123@aws-1-us-east-2.pooler.supabase.com:6543/postgres"
 )
 
 _pool = None
@@ -15,7 +15,8 @@ async def get_pool():
         _pool = await asyncpg.create_pool(
             DATABASE_URL,
             min_size=2,
-            max_size=10
+            max_size=10,
+            ssl="require"
         )
 
     return _pool

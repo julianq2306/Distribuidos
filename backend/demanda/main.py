@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 import asyncpg
 import os
 from datetime import date, timedelta
@@ -7,96 +8,54 @@ import numpy as np
 
 app = FastAPI(title="Microservicio Demanda")
 
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql://sdi_user:sdi_pass@postgres:5432/sdi_db"
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
-# =========================================
-# CONEXIÓN BD
-# =========================================
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    "postgresql://postgres.vzlrzsupvzyiqwetmgyt:distribuidos123@aws-1-us-east-2.pooler.supabase.com:6543/postgres"
+)
 
 async def get_connection():
-    return await asyncpg.connect(DATABASE_URL)
-
-# =========================================
-# HEALTH CHECK
-# =========================================
+    return await asyncpg.connect(DATABASE_URL, ssl="require")
 
 @app.get("/")
 async def root():
-    return {
-        "mensaje": "Microservicio de demanda funcionando"
-    }
-
-# =========================================
-# DASHBOARD GENERAL
-# =========================================
+    return {"mensaje": "Microservicio de demanda funcionando"}
 
 @app.get("/dashboard")
 async def dashboard():
-
     conn = await get_connection()
 
-    # =========================
-    # TOTAL MEDICAMENTOS
-    # =========================
-
     total = await conn.fetchval("""
-        SELECT COUNT(*)
-        FROM inventario.medicamentos
-        WHERE activo = TRUE
+        SELECT COUNT(*) FROM inventario.medicamentos WHERE activo = TRUE
     """)
 
-    # =========================
-    # STOCK BAJO
-    # =========================
-
     stock_bajo = await conn.fetch("""
-        SELECT
-            id,
-            nombre,
-            stock_actual,
-            stock_minimo
+        SELECT id, nombre, stock_actual, stock_minimo
         FROM inventario.medicamentos
         WHERE stock_actual <= stock_minimo
     """)
 
-    # =========================
-    # PRÓXIMOS A VENCER
-    # =========================
-
     proximos_vencer = await conn.fetch("""
-        SELECT
-            id,
-            nombre,
-            fecha_vencimiento
+        SELECT id, nombre, fecha_vencimiento
         FROM inventario.medicamentos
         WHERE fecha_vencimiento <= CURRENT_DATE + INTERVAL '30 days'
     """)
 
-    # =========================
-    # VENCIDOS
-    # =========================
-
     vencidos = await conn.fetch("""
-        SELECT
-            id,
-            nombre,
-            fecha_vencimiento
+        SELECT id, nombre, fecha_vencimiento
         FROM inventario.medicamentos
         WHERE fecha_vencimiento < CURRENT_DATE
     """)
 
-    # =========================
-    # ALERTAS ACTIVAS
-    # =========================
-
     alertas = await conn.fetch("""
-        SELECT
-            tipo_alerta,
-            mensaje,
-            prioridad
+        SELECT tipo_alerta, mensaje, prioridad
         FROM inventario.alertas
         WHERE activa = TRUE
     """)
@@ -111,13 +70,8 @@ async def dashboard():
         "alertas": [dict(x) for x in alertas]
     }
 
-# =========================================
-# PREDICCIÓN SIMPLE
-# =========================================
-
 @app.get("/prediccion/{medicamento_id}")
 async def predecir_demanda(medicamento_id: int):
-
     conn = await get_connection()
 
     datos = await conn.fetch("""
@@ -129,25 +83,15 @@ async def predecir_demanda(medicamento_id: int):
 
     if len(datos) < 3:
         await conn.close()
-
-        return {
-            "error": "No hay suficientes datos históricos"
-        }
+        return {"error": "No hay suficientes datos históricos"}
 
     serie = [float(x["cantidad_consumida"]) for x in datos]
 
-    modelo = ExponentialSmoothing(
-        serie,
-        trend="add",
-        seasonal=None
-    ).fit()
-
+    modelo = ExponentialSmoothing(serie, trend="add", seasonal=None).fit()
     predicciones = modelo.forecast(7)
 
     resultado = []
-
     for i, valor in enumerate(predicciones):
-
         resultado.append({
             "dia": str(date.today() + timedelta(days=i + 1)),
             "prediccion": round(float(valor), 2)
@@ -160,143 +104,74 @@ async def predecir_demanda(medicamento_id: int):
         "prediccion_7_dias": resultado
     }
 
-# =========================================
-# RIESGO DE AGOTAMIENTO
-# =========================================
-
 @app.get("/riesgo-agotamiento")
 async def riesgo_agotamiento():
-
     conn = await get_connection()
 
     medicamentos = await conn.fetch("""
-        SELECT
-            id,
-            nombre,
-            stock_actual,
-            consumo_diario_est
+        SELECT id, nombre, stock_actual, consumo_diario_est
         FROM inventario.medicamentos
     """)
 
     resultado = []
-
     for med in medicamentos:
-
         consumo = float(med["consumo_diario_est"] or 0)
-
-        if consumo > 0:
-            dias_restantes = med["stock_actual"] / consumo
-        else:
-            dias_restantes = None
+        dias_restantes = round(med["stock_actual"] / consumo, 2) if consumo > 0 else None
 
         resultado.append({
             "id": med["id"],
             "nombre": med["nombre"],
             "stock_actual": med["stock_actual"],
             "consumo_diario": consumo,
-            "dias_restantes": round(dias_restantes, 2) if dias_restantes else "Sin datos"
+            "dias_restantes": dias_restantes if dias_restantes else "Sin datos"
         })
 
     await conn.close()
-
     return resultado
-
-# =========================================
-# MEDICAMENTOS MÁS CONSUMIDOS
-# =========================================
 
 @app.get("/top-consumo")
 async def top_consumo():
-
     conn = await get_connection()
 
     datos = await conn.fetch("""
-        SELECT
-            m.nombre,
-            SUM(s.cantidad_consumida) as total_consumido
+        SELECT m.nombre, SUM(s.cantidad_consumida) as total_consumido
         FROM demanda.serie_historica s
-        JOIN inventario.medicamentos m
-            ON m.id = s.medicamento_id
+        JOIN inventario.medicamentos m ON m.id = s.medicamento_id
         GROUP BY m.nombre
         ORDER BY total_consumido DESC
         LIMIT 10
     """)
 
     await conn.close()
-
     return [dict(x) for x in datos]
-
-# =========================================
-# ALERTAS AUTOMÁTICAS
-# =========================================
 
 @app.post("/generar-alertas")
 async def generar_alertas():
-
     conn = await get_connection()
 
     medicamentos = await conn.fetch("""
-        SELECT
-            id,
-            nombre,
-            stock_actual,
-            stock_minimo,
-            fecha_vencimiento
+        SELECT id, nombre, stock_actual, stock_minimo, fecha_vencimiento
         FROM inventario.medicamentos
     """)
 
     creadas = []
 
     for med in medicamentos:
-
-        # STOCK BAJO
         if med["stock_actual"] <= med["stock_minimo"]:
-
             mensaje = f"Stock bajo para {med['nombre']}"
-
             await conn.execute("""
-                INSERT INTO inventario.alertas
-                (
-                    medicamento_id,
-                    tipo_alerta,
-                    mensaje,
-                    prioridad
-                )
+                INSERT INTO inventario.alertas (medicamento_id, tipo_alerta, mensaje, prioridad)
                 VALUES ($1, $2, $3, $4)
-            """,
-            med["id"],
-            "STOCK_BAJO",
-            mensaje,
-            "ALTA"
-            )
-
+            """, med["id"], "STOCK_BAJO", mensaje, "ALTA")
             creadas.append(mensaje)
 
-        # VENCIMIENTO
-        dias = (
-            med["fecha_vencimiento"] - date.today()
-        ).days
-
+        dias = (med["fecha_vencimiento"] - date.today()).days
         if dias <= 30:
-
             mensaje = f"{med['nombre']} vence pronto"
-
             await conn.execute("""
-                INSERT INTO inventario.alertas
-                (
-                    medicamento_id,
-                    tipo_alerta,
-                    mensaje,
-                    prioridad
-                )
+                INSERT INTO inventario.alertas (medicamento_id, tipo_alerta, mensaje, prioridad)
                 VALUES ($1, $2, $3, $4)
-            """,
-            med["id"],
-            "VENCIMIENTO",
-            mensaje,
-            "MEDIA"
-            )
-
+            """, med["id"], "VENCIMIENTO", mensaje, "MEDIA")
             creadas.append(mensaje)
 
     await conn.close()
