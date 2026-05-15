@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-cat > src/middlewares/auth.js << 'EOF'
-=======
->>>>>>> cbc3a25 (base de datos y usuarios subida)
 const jwt = require('jsonwebtoken');
 
 const verifyToken = (req, res, next) => {
@@ -24,9 +20,4 @@ const isAdmin = (req, res, next) => {
   next();
 };
 
-<<<<<<< HEAD
 module.exports = { verifyToken, isAdmin };
-EOF
-=======
-module.exports = { verifyToken, isAdmin };
->>>>>>> cbc3a25 (base de datos y usuarios subida)
