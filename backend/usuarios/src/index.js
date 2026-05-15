@@ -1,4 +1,6 @@
+require('dotenv').config({ path: '/Users/tatianatorres/usuarios/backend/usuarios/.env' });
 const express = require('express');
+const cors = require('cors');
 const sequelize = require('./Config/database');
 
 // Modelos existentes
@@ -22,11 +24,11 @@ const Prediccion       = require('./models/Prediccion');
 const authRoutes = require('./routes/auth.routes');
 
 const app = express();
+app.use(cors({
+  origin: ['http://127.0.0.1:5500', 'http://localhost:5500'],
+  credentials: true
+}));
 app.use(express.json());
-
-app.get('/', (req, res) => {
-  res.send('Servicio de usuarios funcionando 🚀');
-});
 
 app.use('/auth', authRoutes);
 
