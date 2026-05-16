@@ -1,34 +1,26 @@
-require('dotenv').config({ path: '/Users/tatianatorres/usuarios/backend/usuarios/.env' });
 const express = require('express');
 const cors = require('cors');
 const sequelize = require('./Config/database');
 
-// Modelos existentes
 const User = require('./models/User');
-
-// Modelos nuevos - esquema usuarios
 const Rol     = require('./models/Rol');
 const Usuario = require('./models/Usuario');
-
-// Modelos nuevos - esquema inventario
 const Medicamento = require('./models/Medicamento');
 const Movimiento  = require('./models/Movimiento');
 const Alerta      = require('./models/Alerta');
-
-// Modelos nuevos - esquema demanda
 const SerieHistorica   = require('./models/SerieHistorica');
 const ModeloPrediccion = require('./models/ModeloPrediccion');
 const Prediccion       = require('./models/Prediccion');
 
-// Rutas
 const authRoutes = require('./routes/auth.routes');
 
 const app = express();
-app.use(cors({
-  origin: ['http://127.0.0.1:5500', 'http://localhost:5500'],
-  credentials: true
-}));
+app.use(cors());
 app.use(express.json());
+
+app.get('/', (req, res) => {
+  res.send('Servicio de usuarios funcionando 🚀');
+});
 
 app.use('/auth', authRoutes);
 
@@ -36,13 +28,11 @@ const PORT = process.env.PORT || 3000;
 
 const syncDatabase = async () => {
   try {
-    // Crear esquemas
     await sequelize.query(`CREATE SCHEMA IF NOT EXISTS usuarios`);
     await sequelize.query(`CREATE SCHEMA IF NOT EXISTS inventario`);
     await sequelize.query(`CREATE SCHEMA IF NOT EXISTS demanda`);
     console.log('✅ Esquemas verificados');
 
-    // Sincronizar tablas en orden
     await User.sync({ force: false });
     await Rol.sync({ force: false });
     await Usuario.sync({ force: false });
@@ -55,7 +45,6 @@ const syncDatabase = async () => {
 
     console.log('✅ Todas las tablas sincronizadas');
 
-    // Datos iniciales de roles
     const rolesCount = await Rol.count();
     if (rolesCount === 0) {
       await Rol.bulkCreate([{ nombre: 'Administrador' }, { nombre: 'Empleado' }]);
@@ -63,7 +52,6 @@ const syncDatabase = async () => {
       console.log('✅ Roles y usuario admin insertados');
     }
 
-    // Datos iniciales de medicamentos
     const medCount = await Medicamento.count();
     if (medCount === 0) {
       await Medicamento.create({

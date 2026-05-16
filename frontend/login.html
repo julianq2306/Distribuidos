@@ -251,9 +251,9 @@
           btnText.textContent = '✓ Bienvenido, ' + data.name;
           // Redirigir según el rol
           if (data.role === 'admin') {
-            window.location.href = '/frontend/demanda.html';
+            window.location.href = '/inventario-clinica/frontend/demanda.html';
           } else {
-            window.location.href = '/frontend/demanda.html';
+            window.location.href = '/inventario-clinica/frontend/demanda.html';
           }
         } else {
           showError(data.message || 'Error al iniciar sesión.');

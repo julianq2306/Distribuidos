@@ -294,8 +294,24 @@ async function loadTop() {
   }
 }
 
+// ── Sesión ────────────────────────────────────────
+function cerrarSesion() {
+  localStorage.removeItem('token');
+  localStorage.removeItem('role');
+  localStorage.removeItem('name');
+  window.location.href = '/inventario-clinica/backend/usuarios/Frontend/login.html';
+}
+
+// Mostrar nombre del usuario logueado
+function mostrarUsuario() {
+  const name = localStorage.getItem('name');
+  const el = document.getElementById('user-name');
+  if (el && name) el.textContent = name;
+}
+
 // ── Init ──────────────────────────────────────────
 async function loadAll() {
+  mostrarUsuario();
   await checkConnection();
   await Promise.all([loadDashboard(), loadMedicamentos(), loadRiesgo(), loadTop()]);
 }
