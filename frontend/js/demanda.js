@@ -1,5 +1,5 @@
-const BASE = 'http://localhost:8001';
-const BASE_INV = 'http://localhost:3001';
+const BASE = `${window.location.protocol}//${window.location.hostname}:8001`;
+const BASE_INV = `${window.location.protocol}//${window.location.hostname}:3001`;
 let predChart = null;
 
 async function fetchJSON(url) {

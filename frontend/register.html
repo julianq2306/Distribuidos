@@ -6,232 +6,68 @@
   <title>Registrar usuario</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
- 
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: #f5f5f0;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      background: #f5f5f0; min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
     }
- 
     .card {
-      background: #ffffff;
-      border: 1px solid #e5e5e0;
-      border-radius: 12px;
-      padding: 2rem;
-      width: 100%;
-      max-width: 440px;
+      background: #ffffff; border: 1px solid #e5e5e0;
+      border-radius: 12px; padding: 2rem; width: 100%; max-width: 440px;
       box-shadow: 0 1px 4px rgba(0,0,0,0.06);
     }
- 
-    .header {
-      text-align: center;
-      margin-bottom: 1.5rem;
-    }
- 
+    .header { text-align: center; margin-bottom: 1.5rem; }
     .logo-icon {
-      width: 52px;
-      height: 52px;
-      background: #e6f1fb;
-      border-radius: 10px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 0.75rem;
+      width: 52px; height: 52px; background: #e6f1fb; border-radius: 10px;
+      display: inline-flex; align-items: center; justify-content: center; margin-bottom: 0.75rem;
     }
- 
-    .logo-icon svg {
-      width: 26px;
-      height: 26px;
-      stroke: #185fa5;
-      fill: none;
-      stroke-width: 1.8;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-    }
- 
-    h1 {
-      font-size: 20px;
-      font-weight: 500;
-      color: #1a1a1a;
-      margin-bottom: 0.25rem;
-    }
- 
-    .subtitle {
-      font-size: 13px;
-      color: #888;
-    }
- 
-    .field {
-      margin-bottom: 1rem;
-    }
- 
-    label {
-      display: block;
-      font-size: 13px;
-      color: #555;
-      margin-bottom: 6px;
-    }
- 
+    .logo-icon svg { width: 26px; height: 26px; stroke: #185fa5; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    h1 { font-size: 20px; font-weight: 500; color: #1a1a1a; margin-bottom: 0.25rem; }
+    .subtitle { font-size: 13px; color: #888; }
+    .field { margin-bottom: 1rem; }
+    label { display: block; font-size: 13px; color: #555; margin-bottom: 6px; }
     input, select {
-      width: 100%;
-      padding: 0 12px;
-      height: 38px;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      font-size: 14px;
-      background: #fff;
-      color: #1a1a1a;
-      outline: none;
-      transition: border-color 0.15s;
-      appearance: none;
+      width: 100%; padding: 0 12px; height: 38px; border: 1px solid #ddd;
+      border-radius: 8px; font-size: 14px; background: #fff; color: #1a1a1a;
+      outline: none; transition: border-color 0.15s; appearance: none;
     }
- 
-    input:focus, select:focus {
-      border-color: #888;
-      box-shadow: 0 0 0 3px rgba(0,0,0,0.06);
-    }
- 
-    .input-wrap {
-      position: relative;
-    }
- 
+    input:focus, select:focus { border-color: #888; box-shadow: 0 0 0 3px rgba(0,0,0,0.06); }
+    .input-wrap { position: relative; }
     .input-wrap button {
-      position: absolute;
-      right: 10px;
-      top: 50%;
-      transform: translateY(-50%);
-      background: none;
-      border: none;
-      cursor: pointer;
-      padding: 0;
-      color: #aaa;
-      display: flex;
-      align-items: center;
+      position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+      background: none; border: none; cursor: pointer; padding: 0; color: #aaa; display: flex; align-items: center;
     }
- 
-    .input-wrap button svg {
-      width: 18px;
-      height: 18px;
-      stroke: currentColor;
-      fill: none;
-      stroke-width: 1.8;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-    }
- 
-    .select-wrap {
-      position: relative;
-    }
- 
+    .input-wrap button svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .select-wrap { position: relative; }
     .select-wrap::after {
-      content: '';
-      position: absolute;
-      right: 12px;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 0;
-      height: 0;
-      border-left: 5px solid transparent;
-      border-right: 5px solid transparent;
-      border-top: 5px solid #aaa;
-      pointer-events: none;
+      content: ''; position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+      width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent;
+      border-top: 5px solid #aaa; pointer-events: none;
     }
- 
-    .alert {
-      font-size: 13px;
-      padding: 10px 12px;
-      border-radius: 8px;
-      margin-bottom: 1rem;
-      display: none;
-      align-items: center;
-      gap: 8px;
-    }
- 
-    .alert-error {
-      background: #fef2f2;
-      border: 1px solid #fca5a5;
-      color: #b91c1c;
-    }
- 
-    .alert-success {
-      background: #f0fdf4;
-      border: 1px solid #86efac;
-      color: #166534;
-    }
- 
+    .alert { font-size: 13px; padding: 10px 12px; border-radius: 8px; margin-bottom: 1rem; display: none; align-items: center; gap: 8px; }
+    .alert-error { background: #fef2f2; border: 1px solid #fca5a5; color: #b91c1c; }
+    .alert-success { background: #f0fdf4; border: 1px solid #86efac; color: #166534; }
     .btn {
-      width: 100%;
-      height: 38px;
-      background: #1a1a1a;
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-      margin-top: 0.5rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      transition: opacity 0.15s;
+      width: 100%; height: 38px; background: #1a1a1a; color: #fff; border: none;
+      border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; margin-top: 0.5rem;
+      display: flex; align-items: center; justify-content: center; gap: 8px; transition: opacity 0.15s;
     }
- 
     .btn:hover { opacity: 0.85; }
     .btn:disabled { opacity: 0.6; cursor: not-allowed; }
- 
     .btn-secondary {
-      width: 100%;
-      height: 38px;
-      background: transparent;
-      color: #555;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      font-size: 14px;
-      cursor: pointer;
-      margin-top: 0.5rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      transition: background 0.15s;
+      width: 100%; height: 38px; background: transparent; color: #555;
+      border: 1px solid #ddd; border-radius: 8px; font-size: 14px; cursor: pointer; margin-top: 0.5rem;
+      display: flex; align-items: center; justify-content: center; gap: 8px; transition: background 0.15s;
     }
- 
     .btn-secondary:hover { background: #f5f5f0; }
- 
     .spinner {
-      width: 16px;
-      height: 16px;
-      border: 2px solid rgba(255,255,255,0.3);
-      border-top-color: white;
-      border-radius: 50%;
-      animation: spin 0.7s linear infinite;
-      display: none;
+      width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white; border-radius: 50%; animation: spin 0.7s linear infinite; display: none;
     }
- 
     @keyframes spin { to { transform: rotate(360deg); } }
- 
-    .divider {
-      border: none;
-      border-top: 1px solid #eee;
-      margin: 1.25rem 0;
-    }
- 
-    .back-link {
-      text-align: center;
-      margin-top: 1rem;
-      font-size: 13px;
-      color: #888;
-    }
- 
-    .back-link a {
-      color: #185fa5;
-      text-decoration: none;
-    }
- 
+    .divider { border: none; border-top: 1px solid #eee; margin: 1.25rem 0; }
+    .back-link { text-align: center; margin-top: 1rem; font-size: 13px; color: #888; }
+    .back-link a { color: #185fa5; text-decoration: none; }
     .back-link a:hover { text-decoration: underline; }
   </style>
 </head>
@@ -244,27 +80,16 @@
       <h1>Registrar usuario</h1>
       <p class="subtitle">Solo accesible para administradores</p>
     </div>
- 
-    <div class="alert alert-error" id="error-msg">
-      <span>⚠</span>
-      <span id="error-text"></span>
-    </div>
- 
-    <div class="alert alert-success" id="success-msg">
-      <span>✓</span>
-      <span id="success-text"></span>
-    </div>
- 
+    <div class="alert alert-error" id="error-msg"><span>⚠</span><span id="error-text"></span></div>
+    <div class="alert alert-success" id="success-msg"><span>✓</span><span id="success-text"></span></div>
     <div class="field">
       <label for="name">Nombre completo</label>
       <input type="text" id="name" placeholder="Ej: María González" />
     </div>
- 
     <div class="field">
       <label for="email">Correo electrónico</label>
       <input type="email" id="email" placeholder="usuario@correo.com" />
     </div>
- 
     <div class="field">
       <label for="role">Rol</label>
       <div class="select-wrap">
@@ -274,7 +99,6 @@
         </select>
       </div>
     </div>
- 
     <div class="field">
       <label for="password">Contraseña</label>
       <div class="input-wrap">
@@ -284,40 +108,31 @@
         </button>
       </div>
     </div>
- 
     <button class="btn" id="btn-register">
       <span id="btn-text">Crear usuario</span>
       <div class="spinner" id="spinner"></div>
     </button>
- 
     <hr class="divider" />
- 
-    <button class="btn-secondary" id="btn-clear">
-      Limpiar formulario
-    </button>
- 
-    <p class="back-link">
-      <a href="../frontend/login.html">← Volver al login</a>
-    </p>
+    <button class="btn-secondary" id="btn-clear">Limpiar formulario</button>
+    <p class="back-link"><a href="login.html">← Volver al login</a></p>
   </div>
- 
+
   <script>
-    const API_URL = 'http://127.0.0.1:3000/auth/register';
- 
-    // Verificar que quien accede tiene token de admin
+    const API_URL = `${window.location.protocol}//${window.location.hostname}:3000/auth/register`;
+
     const token = localStorage.getItem('token');
-    const role = localStorage.getItem('role');
- 
+    const role  = localStorage.getItem('role');
+
     if (!token || role !== 'admin') {
       alert('Acceso denegado. Solo administradores.');
       window.location.href = 'login.html';
     }
- 
+
     document.getElementById('toggle-pw').addEventListener('click', function () {
       const pw = document.getElementById('password');
       pw.type = pw.type === 'password' ? 'text' : 'password';
     });
- 
+
     document.getElementById('btn-clear').addEventListener('click', () => {
       document.getElementById('name').value = '';
       document.getElementById('email').value = '';
@@ -326,47 +141,36 @@
       document.getElementById('error-msg').style.display = 'none';
       document.getElementById('success-msg').style.display = 'none';
     });
- 
+
     document.getElementById('btn-register').addEventListener('click', handleRegister);
- 
+
     async function handleRegister() {
-      const name = document.getElementById('name').value.trim();
-      const email = document.getElementById('email').value.trim();
+      const name     = document.getElementById('name').value.trim();
+      const email    = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value;
-      const role = document.getElementById('role').value;
-      const spinner = document.getElementById('spinner');
-      const btnText = document.getElementById('btn-text');
-      const btn = document.getElementById('btn-register');
- 
+      const role     = document.getElementById('role').value;
+      const spinner  = document.getElementById('spinner');
+      const btnText  = document.getElementById('btn-text');
+      const btn      = document.getElementById('btn-register');
+
       document.getElementById('error-msg').style.display = 'none';
       document.getElementById('success-msg').style.display = 'none';
- 
-      if (!name || !email || !password) {
-        showAlert('error', 'Por favor completa todos los campos.');
-        return;
-      }
- 
-      if (password.length < 6) {
-        showAlert('error', 'La contraseña debe tener al menos 6 caracteres.');
-        return;
-      }
- 
+
+      if (!name || !email || !password) { showAlert('error', 'Por favor completa todos los campos.'); return; }
+      if (password.length < 6) { showAlert('error', 'La contraseña debe tener al menos 6 caracteres.'); return; }
+
       spinner.style.display = 'block';
       btnText.textContent = 'Creando...';
       btn.disabled = true;
- 
+
       try {
-        const res = await fetch(API_URL, {
+        const res  = await fetch(API_URL, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + localStorage.getItem('token')
-          },
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') },
           body: JSON.stringify({ name, email, password, role })
         });
- 
         const data = await res.json();
- 
+
         if (res.ok) {
           showAlert('success', `Usuario "${name}" creado exitosamente.`);
           document.getElementById('name').value = '';
@@ -379,12 +183,12 @@
       } catch {
         showAlert('error', 'No se pudo conectar al servidor.');
       }
- 
+
       spinner.style.display = 'none';
       btnText.textContent = 'Crear usuario';
       btn.disabled = false;
     }
- 
+
     function showAlert(type, msg) {
       if (type === 'error') {
         document.getElementById('error-text').textContent = msg;

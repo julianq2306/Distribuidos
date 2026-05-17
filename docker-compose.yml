@@ -32,6 +32,17 @@ services:
     depends_on:
       - usuarios
 
+  frontend:
+    build: ./frontend
+    container_name: frontend_service
+    ports:
+      - "80:80"
+    restart: always
+    depends_on:
+      - usuarios
+      - inventario
+      - demanda
+
   pgadmin:
     image: dpage/pgadmin4
     container_name: pgadmin_sdi

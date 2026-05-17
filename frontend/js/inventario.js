@@ -1,14 +1,12 @@
-const API = 'http://localhost:3001/medicamentos';
+const API = `${window.location.protocol}//${window.location.hostname}:3001/medicamentos`;
 
 let medicamentos = [];
 let editandoId = null;
 
-// ── Iniciar ──
 document.addEventListener('DOMContentLoaded', () => {
   cargarMedicamentos();
 });
 
-// ── Cerrar sesión ──
 function cerrarSesion() {
   localStorage.removeItem('token');
   localStorage.removeItem('role');
@@ -16,7 +14,6 @@ function cerrarSesion() {
   window.location.href = 'login.html';
 }
 
-// ── Cargar medicamentos ──
 async function cargarMedicamentos() {
   const area = document.getElementById('tabla-area');
   area.innerHTML = '<div class="loading"><i class="ti ti-loader"></i><span>Cargando medicamentos...</span></div>';
@@ -31,19 +28,11 @@ async function cargarMedicamentos() {
   }
 }
 
-// ── Métricas ──
 function actualizarMetricas() {
-  const hoy = new Date();
-
-  const stockBajo  = medicamentos.filter(m => m.stock_actual <= m.stock_minimo).length;
-  const vencidos   = medicamentos.filter(m => diasRestantes(m.fecha_vencimiento) < 0).length;
-  const proximos   = medicamentos.filter(m => {
-    const d = diasRestantes(m.fecha_vencimiento);
-    return d >= 0 && d <= 30;
-  }).length;
-  const ok = medicamentos.filter(m => {
-    return m.stock_actual > m.stock_minimo && diasRestantes(m.fecha_vencimiento) > 30;
-  }).length;
+  const stockBajo = medicamentos.filter(m => m.stock_actual <= m.stock_minimo).length;
+  const vencidos  = medicamentos.filter(m => diasRestantes(m.fecha_vencimiento) < 0).length;
+  const proximos  = medicamentos.filter(m => { const d = diasRestantes(m.fecha_vencimiento); return d >= 0 && d <= 30; }).length;
+  const ok        = medicamentos.filter(m => m.stock_actual > m.stock_minimo && diasRestantes(m.fecha_vencimiento) > 30).length;
 
   document.getElementById('m-total').textContent    = medicamentos.length;
   document.getElementById('m-stock').textContent    = stockBajo;
@@ -52,14 +41,12 @@ function actualizarMetricas() {
   document.getElementById('m-ok').textContent       = ok;
 }
 
-// ── Días restantes ──
 function diasRestantes(fecha) {
-  const hoy = new Date();
+  const hoy  = new Date();
   const venc = new Date(fecha);
   return Math.floor((venc - hoy) / (1000 * 60 * 60 * 24));
 }
 
-// ── Render tabla ──
 function renderTabla(lista) {
   const area = document.getElementById('tabla-area');
 
@@ -69,22 +56,14 @@ function renderTabla(lista) {
   }
 
   const filas = lista.map(m => {
-    const dias = diasRestantes(m.fecha_vencimiento);
+    const dias     = diasRestantes(m.fecha_vencimiento);
     const vencido  = dias < 0;
     const proximo  = dias >= 0 && dias <= 30;
     const stockBajo = m.stock_actual <= m.stock_minimo;
 
-    let estadoFecha = '';
-    if (vencido)      estadoFecha = '<span class="badge danger">Vencido</span>';
-    else if (proximo) estadoFecha = '<span class="badge warning">Próx. vencer</span>';
-    else              estadoFecha = '<span class="badge ok">Vigente</span>';
-
-    let estadoStock = '';
-    if (m.stock_actual === 0)    estadoStock = '<span class="badge danger">Sin stock</span>';
-    else if (stockBajo)          estadoStock = '<span class="badge warning">Stock bajo</span>';
-    else                         estadoStock = '<span class="badge ok">OK</span>';
-
-    const rowClass = vencido ? 'row-vencido' : proximo ? 'row-proximo' : '';
+    let estadoFecha = vencido ? '<span class="badge danger">Vencido</span>' : proximo ? '<span class="badge warning">Próx. vencer</span>' : '<span class="badge ok">Vigente</span>';
+    let estadoStock = m.stock_actual === 0 ? '<span class="badge danger">Sin stock</span>' : stockBajo ? '<span class="badge warning">Stock bajo</span>' : '<span class="badge ok">OK</span>';
+    const rowClass  = vencido ? 'row-vencido' : proximo ? 'row-proximo' : '';
 
     return `
       <tr class="${rowClass}">
@@ -102,31 +81,21 @@ function renderTabla(lista) {
             <button class="btn-delete" onclick="eliminarMedicamento(${m.id})"><i class="ti ti-trash"></i></button>
           </div>
         </td>
-      </tr>
-    `;
+      </tr>`;
   }).join('');
 
   area.innerHTML = `
     <table class="data-table">
       <thead>
         <tr>
-          <th>Medicamento</th>
-          <th>Forma</th>
-          <th>Stock actual</th>
-          <th>Stock mín.</th>
-          <th>Lote</th>
-          <th>Vencimiento</th>
-          <th>Ubicación</th>
-          <th>Consumo</th>
-          <th>Acciones</th>
+          <th>Medicamento</th><th>Forma</th><th>Stock actual</th><th>Stock mín.</th>
+          <th>Lote</th><th>Vencimiento</th><th>Ubicación</th><th>Consumo</th><th>Acciones</th>
         </tr>
       </thead>
       <tbody>${filas}</tbody>
-    </table>
-  `;
+    </table>`;
 }
 
-// ── Filtrar ──
 function filtrarTabla() {
   const texto = document.getElementById('buscador').value.toLowerCase();
   const filtrados = medicamentos.filter(m =>
@@ -137,7 +106,6 @@ function filtrarTabla() {
   renderTabla(filtrados);
 }
 
-// ── Modal ──
 function abrirModal() {
   editandoId = null;
   document.getElementById('modal-titulo').textContent = 'Nuevo medicamento';
@@ -150,24 +118,21 @@ function abrirModal() {
 function abrirEditar(id) {
   const m = medicamentos.find(x => x.id === id);
   if (!m) return;
-
   editandoId = id;
   document.getElementById('modal-titulo').textContent = 'Editar medicamento';
   document.getElementById('btn-guardar-texto').textContent = 'Guardar cambios';
   document.getElementById('modal-error').style.display = 'none';
-
-  document.getElementById('f-nombre').value     = m.nombre || '';
-  document.getElementById('f-principio').value  = m.principio_activo || '';
-  document.getElementById('f-forma').value      = m.forma_farmaceutica || '';
-  document.getElementById('f-stock').value      = m.stock_actual || 0;
-  document.getElementById('f-stock-min').value  = m.stock_minimo || 0;
-  document.getElementById('f-stock-max').value  = m.stock_maximo || 0;
-  document.getElementById('f-unidad').value     = m.unidad_medida || 'tabletas';
-  document.getElementById('f-consumo').value    = m.consumo_diario_est || 0;
-  document.getElementById('f-lote').value       = m.lote || '';
-  document.getElementById('f-fecha').value      = m.fecha_vencimiento ? m.fecha_vencimiento.split('T')[0] : '';
-  document.getElementById('f-ubicacion').value  = m.ubicacion || '';
-
+  document.getElementById('f-nombre').value    = m.nombre || '';
+  document.getElementById('f-principio').value = m.principio_activo || '';
+  document.getElementById('f-forma').value     = m.forma_farmaceutica || '';
+  document.getElementById('f-stock').value     = m.stock_actual || 0;
+  document.getElementById('f-stock-min').value = m.stock_minimo || 0;
+  document.getElementById('f-stock-max').value = m.stock_maximo || 0;
+  document.getElementById('f-unidad').value    = m.unidad_medida || 'tabletas';
+  document.getElementById('f-consumo').value   = m.consumo_diario_est || 0;
+  document.getElementById('f-lote').value      = m.lote || '';
+  document.getElementById('f-fecha').value     = m.fecha_vencimiento ? m.fecha_vencimiento.split('T')[0] : '';
+  document.getElementById('f-ubicacion').value = m.ubicacion || '';
   document.getElementById('modal').style.display = 'flex';
 }
 
@@ -178,14 +143,11 @@ function cerrarModal() {
 }
 
 function limpiarForm() {
-  ['f-nombre','f-principio','f-forma','f-stock','f-stock-min',
-   'f-stock-max','f-consumo','f-lote','f-fecha','f-ubicacion'].forEach(id => {
-    document.getElementById(id).value = '';
-  });
+  ['f-nombre','f-principio','f-forma','f-stock','f-stock-min','f-stock-max','f-consumo','f-lote','f-fecha','f-ubicacion']
+    .forEach(id => { document.getElementById(id).value = ''; });
   document.getElementById('f-unidad').value = 'tabletas';
 }
 
-// ── Guardar ──
 async function guardarMedicamento() {
   const nombre    = document.getElementById('f-nombre').value.trim();
   const stock     = document.getElementById('f-stock').value;
@@ -201,34 +163,23 @@ async function guardarMedicamento() {
 
   const data = {
     nombre,
-    principio_activo:    document.getElementById('f-principio').value.trim(),
-    forma_farmaceutica:  document.getElementById('f-forma').value.trim(),
-    stock_actual:        parseInt(stock),
-    stock_minimo:        parseInt(stockMin),
-    stock_maximo:        parseInt(document.getElementById('f-stock-max').value) || null,
-    unidad_medida:       document.getElementById('f-unidad').value,
-    consumo_diario_est:  parseFloat(document.getElementById('f-consumo').value) || 0,
+    principio_activo:   document.getElementById('f-principio').value.trim(),
+    forma_farmaceutica: document.getElementById('f-forma').value.trim(),
+    stock_actual:       parseInt(stock),
+    stock_minimo:       parseInt(stockMin),
+    stock_maximo:       parseInt(document.getElementById('f-stock-max').value) || null,
+    unidad_medida:      document.getElementById('f-unidad').value,
+    consumo_diario_est: parseFloat(document.getElementById('f-consumo').value) || 0,
     lote,
-    fecha_vencimiento:   fecha,
+    fecha_vencimiento:  fecha,
     ubicacion,
   };
 
   try {
     const url    = editandoId ? `${API}/${editandoId}` : API;
     const method = editandoId ? 'PUT' : 'POST';
-
-    const res = await fetch(url, {
-      method,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-
-    if (!res.ok) {
-      const err = await res.json();
-      mostrarError(err.message || 'Error al guardar');
-      return;
-    }
-
+    const res    = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+    if (!res.ok) { const err = await res.json(); mostrarError(err.message || 'Error al guardar'); return; }
     cerrarModal();
     cargarMedicamentos();
   } catch (err) {
@@ -236,10 +187,8 @@ async function guardarMedicamento() {
   }
 }
 
-// ── Eliminar ──
 async function eliminarMedicamento(id) {
   if (!confirm('¿Seguro que deseas eliminar este medicamento?')) return;
-
   try {
     await fetch(`${API}/${id}`, { method: 'DELETE' });
     cargarMedicamentos();
@@ -248,7 +197,6 @@ async function eliminarMedicamento(id) {
   }
 }
 
-// ── Error modal ──
 function mostrarError(msg) {
   const el = document.getElementById('modal-error');
   el.textContent = msg;
