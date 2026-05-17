@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Inventario — Clínica</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+  <link rel="stylesheet" href="css/inventario.css">
+</head>
+<body>
+<div class="dash">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-left">
+      <div class="header-icon">
+        <i class="ti ti-clipboard-list"></i>
+      </div>
+      <div>
+        <h1>Inventario de Medicamentos</h1>
+        <p>Gestión en tiempo real · Control de stock · Alertas de vencimiento</p>
+      </div>
+    </div>
+    <div class="header-right">
+      <span class="badge-live" id="badge-live"><span class="dot"></span> Sistema activo</span>
+      <button class="refresh-btn" onclick="cargarMedicamentos()">
+        <i class="ti ti-refresh"></i> Actualizar
+      </button>
+      <button class="refresh-btn" onclick="window.location.href='demanda.html'">
+        <i class="ti ti-arrow-left"></i> Volver
+      </button>
+      <button class="refresh-btn" onclick="cerrarSesion()" style="border-color:#fca5a5; color:#dc2626;">
+        <i class="ti ti-logout"></i> Cerrar sesión
+      </button>
+    </div>
+  </div>
+
+  <!-- MÉTRICAS -->
+  <div class="section-title">Indicadores clave</div>
+  <div class="metrics">
+    <div class="metric info">
+      <div class="metric-icon"><i class="ti ti-pill"></i></div>
+      <div class="metric-value" id="m-total">—</div>
+      <div class="metric-label">Total medicamentos</div>
+      <div class="metric-desc">Registros activos</div>
+    </div>
+    <div class="metric danger">
+      <div class="metric-icon"><i class="ti ti-packages"></i></div>
+      <div class="metric-value" id="m-stock">—</div>
+      <div class="metric-label">Stock bajo</div>
+      <div class="metric-desc">Por debajo del mínimo</div>
+    </div>
+    <div class="metric danger">
+      <div class="metric-icon"><i class="ti ti-calendar-x"></i></div>
+      <div class="metric-value" id="m-vencidos">—</div>
+      <div class="metric-label">Vencidos</div>
+      <div class="metric-desc">Requieren retiro</div>
+    </div>
+    <div class="metric warning">
+      <div class="metric-icon"><i class="ti ti-clock"></i></div>
+      <div class="metric-value" id="m-proximos">—</div>
+      <div class="metric-label">Próx. a vencer</div>
+      <div class="metric-desc">En los próximos 30 días</div>
+    </div>
+    <div class="metric success">
+      <div class="metric-icon"><i class="ti ti-circle-check"></i></div>
+      <div class="metric-value" id="m-ok">—</div>
+      <div class="metric-label">En buen estado</div>
+      <div class="metric-desc">Stock y fecha correctos</div>
+    </div>
+  </div>
+
+  <!-- BARRA DE ACCIONES -->
+  <div class="toolbar">
+    <div class="search-wrap">
+      <i class="ti ti-search"></i>
+      <input type="text" id="buscador" placeholder="Buscar por nombre, lote o ubicación..." oninput="filtrarTabla()" />
+    </div>
+    <button class="btn-primary" onclick="abrirModal()">
+      <i class="ti ti-plus"></i> Agregar medicamento
+    </button>
+  </div>
+
+  <!-- TABLA -->
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title"><i class="ti ti-table"></i> Listado de medicamentos</div>
+        <div class="card-subtitle">Todos los medicamentos registrados en el sistema</div>
+      </div>
+    </div>
+    <div id="tabla-area">
+      <div class="loading"><i class="ti ti-loader"></i><span>Cargando medicamentos...</span></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- MODAL AGREGAR / EDITAR -->
+<div class="modal-overlay" id="modal" style="display:none;">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 id="modal-titulo">Nuevo medicamento</h2>
+      <button class="modal-close" onclick="cerrarModal()"><i class="ti ti-x"></i></button>
+    </div>
+
+    <div class="form-grid">
+      <div class="field full">
+        <label>Nombre *</label>
+        <input type="text" id="f-nombre" placeholder="Ej. Paracetamol 500mg" />
+      </div>
+      <div class="field">
+        <label>Principio activo</label>
+        <input type="text" id="f-principio" placeholder="Ej. Paracetamol" />
+      </div>
+      <div class="field">
+        <label>Forma farmacéutica</label>
+        <input type="text" id="f-forma" placeholder="Ej. Tableta" />
+      </div>
+      <div class="field">
+        <label>Stock actual *</label>
+        <input type="number" id="f-stock" placeholder="0" min="0" />
+      </div>
+      <div class="field">
+        <label>Stock mínimo *</label>
+        <input type="number" id="f-stock-min" placeholder="0" min="0" />
+      </div>
+      <div class="field">
+        <label>Stock máximo</label>
+        <input type="number" id="f-stock-max" placeholder="0" min="0" />
+      </div>
+      <div class="field">
+        <label>Unidad de medida *</label>
+        <select id="f-unidad">
+          <option>tabletas</option>
+          <option>cápsulas</option>
+          <option>ml</option>
+          <option>ampollas</option>
+          <option>sobres</option>
+          <option>frascos</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Consumo diario estimado</label>
+        <input type="number" id="f-consumo" placeholder="0" min="0" />
+      </div>
+      <div class="field">
+        <label>Lote *</label>
+        <input type="text" id="f-lote" placeholder="Ej. LT-2024-001" />
+      </div>
+      <div class="field">
+        <label>Fecha de vencimiento *</label>
+        <input type="date" id="f-fecha" />
+      </div>
+      <div class="field full">
+        <label>Ubicación *</label>
+        <input type="text" id="f-ubicacion" placeholder="Ej. Estante A-1" />
+      </div>
+    </div>
+
+    <div id="modal-error" class="modal-error" style="display:none;"></div>
+
+    <div class="modal-footer">
+      <button class="btn-outline" onclick="cerrarModal()">Cancelar</button>
+      <button class="btn-primary" onclick="guardarMedicamento()">
+        <i class="ti ti-check"></i> <span id="btn-guardar-texto">Guardar</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script src="js/inventario.js"></script>
+</body>
+</html>
