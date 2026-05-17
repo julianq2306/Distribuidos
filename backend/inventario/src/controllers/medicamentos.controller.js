@@ -59,3 +59,31 @@ export const getStockBajo = async (req, res) => {
     res.status(500).json({ message: 'Error al obtener stock bajo', error: err.message });
   }
 };
+
+export const getAlertas = async (req, res) => {
+  try {
+    const medicamentos = await Medicamento.findAll({ where: { activo: true } });
+    const hoy = new Date();
+    const alertas = [];
+
+    medicamentos.forEach((m) => {
+      const vencimiento = new Date(m.fecha_vencimiento);
+      const dias = Math.floor((vencimiento - hoy) / (1000 * 60 * 60 * 24));
+
+      if (dias < 0) {
+        alertas.push({ ...m.dataValues, tipo: 'vencido', dias, prioridad: 1 });
+      } else if (dias <= 30) {
+        alertas.push({ ...m.dataValues, tipo: 'proximo_vencer', dias, prioridad: 2 });
+      }
+
+      if (m.stock_actual <= m.stock_minimo) {
+        alertas.push({ ...m.dataValues, tipo: 'stock_bajo', prioridad: 3 });
+      }
+    });
+
+    alertas.sort((a, b) => a.prioridad - b.prioridad);
+    res.json(alertas);
+  } catch (err) {
+    res.status(500).json({ message: 'Error al obtener alertas', error: err.message });
+  }
+};
