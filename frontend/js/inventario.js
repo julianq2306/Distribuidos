@@ -1,4 +1,5 @@
 const API = `${window.location.protocol}//${window.location.hostname}:3001/medicamentos`;
+const DEMANDA_API = `${window.location.protocol}//${window.location.hostname}:8001`;
 
 let medicamentos = [];
 let editandoId = null;
@@ -31,8 +32,13 @@ async function cargarMedicamentos() {
 function actualizarMetricas() {
   const stockBajo = medicamentos.filter(m => m.stock_actual <= m.stock_minimo).length;
   const vencidos  = medicamentos.filter(m => diasRestantes(m.fecha_vencimiento) < 0).length;
-  const proximos  = medicamentos.filter(m => { const d = diasRestantes(m.fecha_vencimiento); return d >= 0 && d <= 30; }).length;
-  const ok        = medicamentos.filter(m => m.stock_actual > m.stock_minimo && diasRestantes(m.fecha_vencimiento) > 30).length;
+  const proximos  = medicamentos.filter(m => {
+    const d = diasRestantes(m.fecha_vencimiento);
+    return d >= 0 && d <= 30;
+  }).length;
+  const ok = medicamentos.filter(m => {
+    return m.stock_actual > m.stock_minimo && diasRestantes(m.fecha_vencimiento) > 30;
+  }).length;
 
   document.getElementById('m-total').textContent    = medicamentos.length;
   document.getElementById('m-stock').textContent    = stockBajo;
@@ -56,14 +62,22 @@ function renderTabla(lista) {
   }
 
   const filas = lista.map(m => {
-    const dias     = diasRestantes(m.fecha_vencimiento);
-    const vencido  = dias < 0;
-    const proximo  = dias >= 0 && dias <= 30;
+    const dias      = diasRestantes(m.fecha_vencimiento);
+    const vencido   = dias < 0;
+    const proximo   = dias >= 0 && dias <= 30;
     const stockBajo = m.stock_actual <= m.stock_minimo;
 
-    let estadoFecha = vencido ? '<span class="badge danger">Vencido</span>' : proximo ? '<span class="badge warning">Próx. vencer</span>' : '<span class="badge ok">Vigente</span>';
-    let estadoStock = m.stock_actual === 0 ? '<span class="badge danger">Sin stock</span>' : stockBajo ? '<span class="badge warning">Stock bajo</span>' : '<span class="badge ok">OK</span>';
-    const rowClass  = vencido ? 'row-vencido' : proximo ? 'row-proximo' : '';
+    let estadoFecha = '';
+    if (vencido)      estadoFecha = '<span class="badge danger">Vencido</span>';
+    else if (proximo) estadoFecha = '<span class="badge warning">Próx. vencer</span>';
+    else              estadoFecha = '<span class="badge ok">Vigente</span>';
+
+    let estadoStock = '';
+    if (m.stock_actual === 0) estadoStock = '<span class="badge danger">Sin stock</span>';
+    else if (stockBajo)       estadoStock = '<span class="badge warning">Stock bajo</span>';
+    else                      estadoStock = '<span class="badge ok">OK</span>';
+
+    const rowClass = vencido ? 'row-vencido' : proximo ? 'row-proximo' : '';
 
     return `
       <tr class="${rowClass}">
@@ -178,8 +192,25 @@ async function guardarMedicamento() {
   try {
     const url    = editandoId ? `${API}/${editandoId}` : API;
     const method = editandoId ? 'PUT' : 'POST';
-    const res    = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-    if (!res.ok) { const err = await res.json(); mostrarError(err.message || 'Error al guardar'); return; }
+
+    const res = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      mostrarError(err.message || 'Error al guardar');
+      return;
+    }
+
+    try {
+      await fetch(`${DEMANDA_API}/generar-alertas`, { method: 'POST' });
+    } catch (e) {
+      console.warn('No se pudieron generar alertas:', e);
+    }
+
     cerrarModal();
     cargarMedicamentos();
   } catch (err) {
@@ -191,6 +222,13 @@ async function eliminarMedicamento(id) {
   if (!confirm('¿Seguro que deseas eliminar este medicamento?')) return;
   try {
     await fetch(`${API}/${id}`, { method: 'DELETE' });
+
+    try {
+      await fetch(`${DEMANDA_API}/desactivar-alertas/${id}`, { method: 'POST' });
+    } catch (e) {
+      console.warn('No se pudieron desactivar alertas:', e);
+    }
+
     cargarMedicamentos();
   } catch (err) {
     alert('No se pudo eliminar el medicamento');

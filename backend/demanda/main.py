@@ -40,18 +40,22 @@ async def dashboard():
         SELECT id, nombre, stock_actual, stock_minimo
         FROM inventario.medicamentos
         WHERE stock_actual <= stock_minimo
+        AND activo = TRUE
     """)
 
     proximos_vencer = await conn.fetch("""
         SELECT id, nombre, fecha_vencimiento
         FROM inventario.medicamentos
         WHERE fecha_vencimiento <= CURRENT_DATE + INTERVAL '30 days'
+        AND fecha_vencimiento >= CURRENT_DATE
+        AND activo = TRUE
     """)
 
     vencidos = await conn.fetch("""
         SELECT id, nombre, fecha_vencimiento
         FROM inventario.medicamentos
         WHERE fecha_vencimiento < CURRENT_DATE
+        AND activo = TRUE
     """)
 
     alertas = await conn.fetch("""
@@ -111,6 +115,7 @@ async def riesgo_agotamiento():
     medicamentos = await conn.fetch("""
         SELECT id, nombre, stock_actual, consumo_diario_est
         FROM inventario.medicamentos
+        WHERE activo = TRUE
     """)
 
     resultado = []
@@ -137,6 +142,7 @@ async def top_consumo():
         SELECT m.nombre, SUM(s.cantidad_consumida) as total_consumido
         FROM demanda.serie_historica s
         JOIN inventario.medicamentos m ON m.id = s.medicamento_id
+        WHERE m.activo = TRUE
         GROUP BY m.nombre
         ORDER BY total_consumido DESC
         LIMIT 10
@@ -152,27 +158,42 @@ async def generar_alertas():
     medicamentos = await conn.fetch("""
         SELECT id, nombre, stock_actual, stock_minimo, fecha_vencimiento
         FROM inventario.medicamentos
+        WHERE activo = TRUE
     """)
 
     creadas = []
 
     for med in medicamentos:
         if med["stock_actual"] <= med["stock_minimo"]:
-            mensaje = f"Stock bajo para {med['nombre']}"
-            await conn.execute("""
-                INSERT INTO inventario.alertas (medicamento_id, tipo_alerta, mensaje, prioridad)
-                VALUES ($1, $2, $3, $4)
-            """, med["id"], "STOCK_BAJO", mensaje, "ALTA")
-            creadas.append(mensaje)
+            existe = await conn.fetchval("""
+                SELECT COUNT(*) FROM inventario.alertas
+                WHERE medicamento_id = $1
+                AND tipo_alerta = 'STOCK_BAJO'
+                AND activa = TRUE
+            """, med["id"])
+            if not existe:
+                mensaje = f"Stock bajo para {med['nombre']}"
+                await conn.execute("""
+                    INSERT INTO inventario.alertas (medicamento_id, tipo_alerta, mensaje, prioridad)
+                    VALUES ($1, $2, $3, $4)
+                """, med["id"], "STOCK_BAJO", mensaje, "ALTA")
+                creadas.append(mensaje)
 
         dias = (med["fecha_vencimiento"] - date.today()).days
         if dias <= 30:
-            mensaje = f"{med['nombre']} vence pronto"
-            await conn.execute("""
-                INSERT INTO inventario.alertas (medicamento_id, tipo_alerta, mensaje, prioridad)
-                VALUES ($1, $2, $3, $4)
-            """, med["id"], "VENCIMIENTO", mensaje, "MEDIA")
-            creadas.append(mensaje)
+            existe = await conn.fetchval("""
+                SELECT COUNT(*) FROM inventario.alertas
+                WHERE medicamento_id = $1
+                AND tipo_alerta = 'VENCIMIENTO'
+                AND activa = TRUE
+            """, med["id"])
+            if not existe:
+                mensaje = f"{med['nombre']} vence pronto"
+                await conn.execute("""
+                    INSERT INTO inventario.alertas (medicamento_id, tipo_alerta, mensaje, prioridad)
+                    VALUES ($1, $2, $3, $4)
+                """, med["id"], "VENCIMIENTO", mensaje, "MEDIA")
+                creadas.append(mensaje)
 
     await conn.close()
 
@@ -181,3 +202,14 @@ async def generar_alertas():
         "total_alertas": len(creadas),
         "alertas": creadas
     }
+
+@app.post("/desactivar-alertas/{medicamento_id}")
+async def desactivar_alertas(medicamento_id: int):
+    conn = await get_connection()
+    await conn.execute("""
+        UPDATE inventario.alertas
+        SET activa = FALSE
+        WHERE medicamento_id = $1
+    """, medicamento_id)
+    await conn.close()
+    return {"mensaje": "Alertas desactivadas"}

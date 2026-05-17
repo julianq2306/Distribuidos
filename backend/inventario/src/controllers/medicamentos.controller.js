@@ -43,7 +43,7 @@ export const remove = async (req, res) => {
   try {
     const medicamento = await Medicamento.findByPk(req.params.id);
     if (!medicamento) return res.status(404).json({ message: 'Medicamento no encontrado' });
-    await medicamento.update({ activo: false });
+    await medicamento.destroy();
     res.json({ message: 'Medicamento eliminado' });
   } catch (err) {
     res.status(500).json({ message: 'Error al eliminar medicamento', error: err.message });
