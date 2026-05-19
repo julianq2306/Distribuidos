@@ -1,5 +1,6 @@
-const API = `${window.location.protocol}//${window.location.hostname}:3001/medicamentos`;
-const DEMANDA_API = `${window.location.protocol}//${window.location.hostname}:8001`;
+const API = 'https://poetic-harmony-production-6e36.up.railway.app/medicamentos';
+const DEMANDA_API = 'https://diligent-empathy-production-e8fe.up.railway.app';
+
 
 let medicamentos = [];
 let editandoId = null;

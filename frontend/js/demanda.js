@@ -1,5 +1,5 @@
-const BASE = `${window.location.protocol}//${window.location.hostname}:8001`;
-const BASE_INV = `${window.location.protocol}//${window.location.hostname}:3001`;
+const BASE = 'https://diligent-empathy-production-e8fe.up.railway.app';
+const BASE_INV = 'https://poetic-harmony-production-6e36.up.railway.app';
 let predChart = null;
 
 async function fetchJSON(url) {
