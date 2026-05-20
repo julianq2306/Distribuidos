@@ -1,16 +1,14 @@
-const API = 'http://localhost:3001/medicamentos';
-const DEMANDA_API = 'http://localhost:8001';
+const API = 'https://poetic-harmony-production-6e36.up.railway.app/medicamentos';
+const DEMANDA_API = 'https://diligent-empathy-production-e8fe.up.railway.app';
+
 
 let medicamentos = [];
 let editandoId = null;
 
-
-// ── Iniciar ──
 document.addEventListener('DOMContentLoaded', () => {
   cargarMedicamentos();
 });
 
-// ── Cerrar sesión ──
 function cerrarSesion() {
   localStorage.removeItem('token');
   localStorage.removeItem('role');
@@ -18,7 +16,6 @@ function cerrarSesion() {
   window.location.href = 'login.html';
 }
 
-// ── Cargar medicamentos ──
 async function cargarMedicamentos() {
   const area = document.getElementById('tabla-area');
   area.innerHTML = '<div class="loading"><i class="ti ti-loader"></i><span>Cargando medicamentos...</span></div>';
@@ -33,7 +30,6 @@ async function cargarMedicamentos() {
   }
 }
 
-// ── Métricas ──
 function actualizarMetricas() {
   const stockBajo = medicamentos.filter(m => m.stock_actual <= m.stock_minimo).length;
   const vencidos  = medicamentos.filter(m => diasRestantes(m.fecha_vencimiento) < 0).length;
@@ -52,14 +48,12 @@ function actualizarMetricas() {
   document.getElementById('m-ok').textContent       = ok;
 }
 
-// ── Días restantes ──
 function diasRestantes(fecha) {
   const hoy  = new Date();
   const venc = new Date(fecha);
   return Math.floor((venc - hoy) / (1000 * 60 * 60 * 24));
 }
 
-// ── Render tabla ──
 function renderTabla(lista) {
   const area = document.getElementById('tabla-area');
 
@@ -69,9 +63,9 @@ function renderTabla(lista) {
   }
 
   const filas = lista.map(m => {
-    const dias     = diasRestantes(m.fecha_vencimiento);
-    const vencido  = dias < 0;
-    const proximo  = dias >= 0 && dias <= 30;
+    const dias      = diasRestantes(m.fecha_vencimiento);
+    const vencido   = dias < 0;
+    const proximo   = dias >= 0 && dias <= 30;
     const stockBajo = m.stock_actual <= m.stock_minimo;
 
     let estadoFecha = '';
@@ -102,31 +96,21 @@ function renderTabla(lista) {
             <button class="btn-delete" onclick="eliminarMedicamento(${m.id})"><i class="ti ti-trash"></i></button>
           </div>
         </td>
-      </tr>
-    `;
+      </tr>`;
   }).join('');
 
   area.innerHTML = `
     <table class="data-table">
       <thead>
         <tr>
-          <th>Medicamento</th>
-          <th>Forma</th>
-          <th>Stock actual</th>
-          <th>Stock mín.</th>
-          <th>Lote</th>
-          <th>Vencimiento</th>
-          <th>Ubicación</th>
-          <th>Consumo</th>
-          <th>Acciones</th>
+          <th>Medicamento</th><th>Forma</th><th>Stock actual</th><th>Stock mín.</th>
+          <th>Lote</th><th>Vencimiento</th><th>Ubicación</th><th>Consumo</th><th>Acciones</th>
         </tr>
       </thead>
       <tbody>${filas}</tbody>
-    </table>
-  `;
+    </table>`;
 }
 
-// ── Filtrar ──
 function filtrarTabla() {
   const texto = document.getElementById('buscador').value.toLowerCase();
   const filtrados = medicamentos.filter(m =>
@@ -137,7 +121,6 @@ function filtrarTabla() {
   renderTabla(filtrados);
 }
 
-// ── Modal ──
 function abrirModal() {
   editandoId = null;
   document.getElementById('modal-titulo').textContent = 'Nuevo medicamento';
@@ -150,12 +133,10 @@ function abrirModal() {
 function abrirEditar(id) {
   const m = medicamentos.find(x => x.id === id);
   if (!m) return;
-
   editandoId = id;
   document.getElementById('modal-titulo').textContent = 'Editar medicamento';
   document.getElementById('btn-guardar-texto').textContent = 'Guardar cambios';
   document.getElementById('modal-error').style.display = 'none';
-
   document.getElementById('f-nombre').value    = m.nombre || '';
   document.getElementById('f-principio').value = m.principio_activo || '';
   document.getElementById('f-forma').value     = m.forma_farmaceutica || '';
@@ -167,7 +148,6 @@ function abrirEditar(id) {
   document.getElementById('f-lote').value      = m.lote || '';
   document.getElementById('f-fecha').value     = m.fecha_vencimiento ? m.fecha_vencimiento.split('T')[0] : '';
   document.getElementById('f-ubicacion').value = m.ubicacion || '';
-
   document.getElementById('modal').style.display = 'flex';
 }
 
@@ -178,14 +158,11 @@ function cerrarModal() {
 }
 
 function limpiarForm() {
-  ['f-nombre','f-principio','f-forma','f-stock','f-stock-min',
-   'f-stock-max','f-consumo','f-lote','f-fecha','f-ubicacion'].forEach(id => {
-    document.getElementById(id).value = '';
-  });
+  ['f-nombre','f-principio','f-forma','f-stock','f-stock-min','f-stock-max','f-consumo','f-lote','f-fecha','f-ubicacion']
+    .forEach(id => { document.getElementById(id).value = ''; });
   document.getElementById('f-unidad').value = 'tabletas';
 }
 
-// ── Guardar ──
 async function guardarMedicamento() {
   const nombre    = document.getElementById('f-nombre').value.trim();
   const stock     = document.getElementById('f-stock').value;
@@ -229,7 +206,6 @@ async function guardarMedicamento() {
       return;
     }
 
-    // Generar alertas automáticamente después de guardar
     try {
       await fetch(`${DEMANDA_API}/generar-alertas`, { method: 'POST' });
     } catch (e) {
@@ -243,14 +219,11 @@ async function guardarMedicamento() {
   }
 }
 
-// ── Eliminar ──
 async function eliminarMedicamento(id) {
   if (!confirm('¿Seguro que deseas eliminar este medicamento?')) return;
-
   try {
     await fetch(`${API}/${id}`, { method: 'DELETE' });
 
-    // Desactivar alertas del medicamento eliminado
     try {
       await fetch(`${DEMANDA_API}/desactivar-alertas/${id}`, { method: 'POST' });
     } catch (e) {
@@ -263,7 +236,6 @@ async function eliminarMedicamento(id) {
   }
 }
 
-// ── Error modal ──
 function mostrarError(msg) {
   const el = document.getElementById('modal-error');
   el.textContent = msg;

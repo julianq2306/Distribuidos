@@ -46,8 +46,22 @@ services:
     depends_on:
       - usuarios
 
+<<<<<<< HEAD
   # Interfaz web de administración de PostgreSQL.
   # Útil para inspeccionar la base de datos durante desarrollo.
+=======
+  frontend:
+    build: ./frontend
+    container_name: frontend_service
+    ports:
+      - "80:80"
+    restart: always
+    depends_on:
+      - usuarios
+      - inventario
+      - demanda
+
+>>>>>>> 45a195beb2aa31f15742fff35f57c9ea2379826e
   pgadmin:
     image: dpage/pgadmin4
     container_name: pgadmin_sdi

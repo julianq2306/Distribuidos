@@ -1,5 +1,5 @@
-const BASE = 'http://localhost:8001';
-const BASE_INV = 'http://localhost:3001';
+const BASE = 'https://diligent-empathy-production-e8fe.up.railway.app';
+const BASE_INV = 'https://poetic-harmony-production-6e36.up.railway.app';
 let predChart = null;
 
 async function fetchJSON(url) {

@@ -4,6 +4,7 @@ FROM python:3.11-slim
 # Directorio de trabajo dentro del contenedor
 WORKDIR /app
 
+<<<<<<< HEAD
 # Instala compiladores necesarios para algunas dependencias de Python
 # (por ejemplo, paquetes que requieren build desde código fuente)
 RUN apt-get update && apt-get install -y \
@@ -12,6 +13,8 @@ RUN apt-get update && apt-get install -y \
 
 # Copia primero requirements.txt para aprovechar la caché de Docker:
 # si no cambia, no se reinstalan las dependencias en builds posteriores
+=======
+>>>>>>> 45a195beb2aa31f15742fff35f57c9ea2379826e
 COPY requirements.txt .
 
 # Instala las dependencias de Python sin guardar caché (imagen más liviana)
