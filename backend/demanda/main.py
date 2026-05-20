@@ -1,7 +1,16 @@
+"""
+Microservicio de Demanda.
+
+Expone endpoints para dashboard de inventario, predicción de demanda
+mediante suavizamiento exponencial, cálculo de riesgo de agotamiento,
+ranking de consumo y gestión de alertas.
+"""
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import asyncpg
 import os
+import math
 from datetime import date, timedelta
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
 import numpy as np
@@ -22,14 +31,36 @@ DATABASE_URL = os.getenv(
 )
 
 async def get_connection():
+    """
+    Abre una conexión asíncrona a PostgreSQL con SSL requerido.
+
+    Returns:
+        asyncpg.Connection: Conexión activa lista para ejecutar consultas.
+    """
     return await asyncpg.connect(DATABASE_URL, ssl="require")
 
 @app.get("/")
 async def root():
+    """
+    Endpoint raíz. Confirma que el microservicio está operativo.
+
+    Returns:
+        dict: Mensaje de estado del servicio.
+    """
     return {"mensaje": "Microservicio de demanda funcionando"}
 
 @app.get("/dashboard")
 async def dashboard():
+    """
+    Resumen general del inventario para el dashboard.
+
+    Reúne en una sola respuesta: total de medicamentos activos,
+    items con stock bajo, próximos a vencer (en 30 días), ya vencidos
+    y alertas activas del sistema.
+
+    Returns:
+        dict: Información agregada del estado actual del inventario.
+    """
     conn = await get_connection()
 
     total = await conn.fetchval("""
@@ -76,6 +107,22 @@ async def dashboard():
 
 @app.get("/prediccion/{medicamento_id}")
 async def predecir_demanda(medicamento_id: int):
+    """
+    Predice la demanda de un medicamento para los próximos 7 días.
+
+    Usa el modelo de suavizamiento exponencial (Holt-Winters con tendencia
+    aditiva) sobre la serie histórica de consumo. Calcula métricas de error
+    (MAE, RMSE, MAPE), persiste el modelo entrenado, desactiva versiones
+    anteriores y guarda las predicciones con intervalos de confianza del ±15%.
+
+    Args:
+        medicamento_id: ID único del medicamento a predecir.
+
+    Returns:
+        dict: ID del modelo generado, métricas de error y predicción
+        diaria para los próximos 7 días con sus intervalos de confianza.
+        Si hay menos de 3 puntos históricos, devuelve un error.
+    """
     conn = await get_connection()
 
     datos = await conn.fetch("""
@@ -93,23 +140,81 @@ async def predecir_demanda(medicamento_id: int):
 
     modelo = ExponentialSmoothing(serie, trend="add", seasonal=None).fit()
     predicciones = modelo.forecast(7)
+    fitted = modelo.fittedvalues.tolist()
+
+    # Calcular métricas
+    n = len(fitted)
+    serie_fit = serie[-n:]
+    mae = round(sum(abs(r - f) for r, f in zip(serie_fit, fitted)) / n, 4)
+    rmse = round(math.sqrt(sum((r - f) ** 2 for r, f in zip(serie_fit, fitted)) / n), 4)
+    mape = round(
+        sum(abs((r - f) / r) for r, f in zip(serie_fit, fitted) if r != 0) / n * 100, 4
+    )
+
+    # Desactivar modelos anteriores
+    await conn.execute("""
+        UPDATE demanda.modelos_prediccion
+        SET activo = FALSE
+        WHERE medicamento_id = $1
+    """, medicamento_id)
+
+    # Guardar modelo
+    modelo_id = await conn.fetchval("""
+        INSERT INTO demanda.modelos_prediccion
+        (medicamento_id, tipo_modelo, parametros_json, mape, rmse, mae, activo)
+        VALUES ($1, $2, $3, $4, $5, $6, TRUE)
+        RETURNING id
+    """, medicamento_id, "ExponentialSmoothing",
+        '{"trend": "add", "seasonal": null}',
+        mape, rmse, mae)
+
+    # Borrar predicciones anteriores del modelo
+    await conn.execute("""
+        DELETE FROM demanda.predicciones WHERE modelo_id = $1
+    """, modelo_id)
 
     resultado = []
     for i, valor in enumerate(predicciones):
+        fecha_pred = date.today() + timedelta(days=i + 1)
+        pred_val = round(float(valor), 2)
+        ic_inf = round(pred_val * 0.85, 2)
+        ic_sup = round(pred_val * 1.15, 2)
+
+        await conn.execute("""
+            INSERT INTO demanda.predicciones
+            (medicamento_id, modelo_id, fecha_pred, cantidad_pred, ic_inferior, ic_superior)
+            VALUES ($1, $2, $3, $4, $5, $6)
+        """, medicamento_id, modelo_id, fecha_pred, pred_val, ic_inf, ic_sup)
+
         resultado.append({
-            "dia": str(date.today() + timedelta(days=i + 1)),
-            "prediccion": round(float(valor), 2)
+            "dia": str(fecha_pred),
+            "prediccion": pred_val,
+            "ic_inferior": ic_inf,
+            "ic_superior": ic_sup
         })
 
     await conn.close()
 
     return {
         "medicamento_id": medicamento_id,
+        "modelo_id": modelo_id,
+        "tipo_modelo": "ExponentialSmoothing",
+        "metricas": {"mape": mape, "rmse": rmse, "mae": mae},
         "prediccion_7_dias": resultado
     }
 
 @app.get("/riesgo-agotamiento")
 async def riesgo_agotamiento():
+    """
+    Calcula los días restantes de stock para cada medicamento activo.
+
+    Divide el stock actual entre el consumo diario estimado. Si no hay
+    consumo estimado, devuelve "Sin datos" para ese medicamento.
+
+    Returns:
+        list[dict]: Lista con id, nombre, stock actual, consumo diario
+        y días restantes estimados por medicamento.
+    """
     conn = await get_connection()
 
     medicamentos = await conn.fetch("""
@@ -136,6 +241,16 @@ async def riesgo_agotamiento():
 
 @app.get("/top-consumo")
 async def top_consumo():
+    """
+    Top 10 de medicamentos más consumidos según la serie histórica.
+
+    Agrega el total consumido por medicamento y devuelve los 10 con
+    mayor consumo acumulado.
+
+    Returns:
+        list[dict]: Nombre y total consumido de los 10 medicamentos
+        con mayor demanda histórica.
+    """
     conn = await get_connection()
 
     datos = await conn.fetch("""
@@ -153,6 +268,18 @@ async def top_consumo():
 
 @app.post("/generar-alertas")
 async def generar_alertas():
+    """
+    Genera alertas automáticas de stock bajo y vencimiento próximo.
+
+    Recorre todos los medicamentos activos y crea alertas para los que
+    tengan stock por debajo del mínimo (prioridad ALTA) o que venzan
+    en los próximos 30 días (prioridad MEDIA). Evita duplicados
+    verificando que no exista ya una alerta activa del mismo tipo.
+
+    Returns:
+        dict: Mensaje de confirmación, total de alertas creadas
+        y lista de los mensajes generados.
+    """
     conn = await get_connection()
 
     medicamentos = await conn.fetch("""
@@ -205,6 +332,18 @@ async def generar_alertas():
 
 @app.post("/desactivar-alertas/{medicamento_id}")
 async def desactivar_alertas(medicamento_id: int):
+    """
+    Desactiva todas las alertas asociadas a un medicamento.
+
+    Marca como inactivas todas las alertas del medicamento dado,
+    sin eliminarlas (se conservan para auditoría).
+
+    Args:
+        medicamento_id: ID único del medicamento.
+
+    Returns:
+        dict: Mensaje de confirmación.
+    """
     conn = await get_connection()
     await conn.execute("""
         UPDATE inventario.alertas

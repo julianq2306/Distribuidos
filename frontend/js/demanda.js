@@ -145,7 +145,9 @@ async function loadPrediccion(medId = 1, nombre = '') {
     const min = Math.min(...dias.map(x => x.prediccion));
     const tendencia = dias[dias.length - 1].prediccion > dias[0].prediccion ? '↑ Tendencia creciente' : '↓ Tendencia decreciente';
 
-    area.innerHTML = `
+    const metricasHTML = '';
+
+    const resumenHTML = `
       <div style="display:flex; gap:12px; margin-bottom:1.25rem;">
         <div style="flex:1; background:#eff6ff; border-radius:8px; padding:12px; text-align:center;">
           <div style="font-size:11px; color:#2563eb; font-weight:700; text-transform:uppercase; margin-bottom:4px;">Máximo estimado</div>
@@ -162,12 +164,15 @@ async function loadPrediccion(medId = 1, nombre = '') {
           <div style="font-size:14px; font-weight:700; color:#1a2332;">${tendencia}</div>
           <div style="font-size:11px; color:#94a3b8;">próximos 7 días</div>
         </div>
-      </div>
-      <table class="pred-table"><thead><tr><th>Fecha</th><th>Predicción (uds)</th><th style="width:160px">Volumen relativo</th></tr></thead><tbody>` +
+      </div>`;
+
+    area.innerHTML = metricasHTML + resumenHTML +
+      '<table class="pred-table"><thead><tr><th>Fecha</th><th>Predicción (uds)</th><th>Intervalo de confianza</th><th style="width:120px">Volumen relativo</th></tr></thead><tbody>' +
       dias.map(x => `
         <tr>
           <td>${x.dia}</td>
           <td><strong>${x.prediccion.toFixed(1)}</strong> unidades</td>
+          <td style="font-size:11px; color:#64748b;">${x.ic_inferior?.toFixed(1) || '—'} – ${x.ic_superior?.toFixed(1) || '—'}</td>
           <td>
             <div class="bar-wrap">
               <div class="bar-mini" style="width:${Math.round(x.prediccion / max * 110)}px"></div>
@@ -182,18 +187,38 @@ async function loadPrediccion(medId = 1, nombre = '') {
       type: 'line',
       data: {
         labels: dias.map(x => x.dia),
-        datasets: [{
-          label: 'Unidades predichas',
-          data: dias.map(x => parseFloat(x.prediccion.toFixed(2))),
-          borderColor: '#1a5276',
-          backgroundColor: 'rgba(26,82,118,0.07)',
-          fill: true,
-          tension: 0.4,
-          pointRadius: 5,
-          pointBackgroundColor: '#1a5276',
-          pointBorderColor: 'white',
-          pointBorderWidth: 2,
-        }]
+        datasets: [
+          {
+            label: 'Predicción',
+            data: dias.map(x => parseFloat(x.prediccion.toFixed(2))),
+            borderColor: '#1a5276',
+            backgroundColor: 'rgba(26,82,118,0.07)',
+            fill: true,
+            tension: 0.4,
+            pointRadius: 5,
+            pointBackgroundColor: '#1a5276',
+            pointBorderColor: 'white',
+            pointBorderWidth: 2,
+          },
+          {
+            label: 'Límite superior',
+            data: dias.map(x => x.ic_superior || null),
+            borderColor: '#94a3b8',
+            borderDash: [5, 5],
+            fill: false,
+            tension: 0.4,
+            pointRadius: 0,
+          },
+          {
+            label: 'Límite inferior',
+            data: dias.map(x => x.ic_inferior || null),
+            borderColor: '#94a3b8',
+            borderDash: [5, 5],
+            fill: false,
+            tension: 0.4,
+            pointRadius: 0,
+          }
+        ]
       },
       options: {
         responsive: true,
@@ -202,20 +227,17 @@ async function loadPrediccion(medId = 1, nombre = '') {
           legend: { display: false },
           tooltip: {
             callbacks: {
-              label: ctx => ` ${ctx.parsed.y.toFixed(1)} unidades estimadas`
+              label: ctx => ` ${ctx.parsed.y.toFixed(1)} unidades`
             }
           }
         },
         scales: {
           x: { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { font: { size: 11 }, color: '#64748b' } },
-          y: {
-            grid: { color: 'rgba(0,0,0,0.04)' },
-            ticks: { font: { size: 11 }, color: '#64748b' },
-            beginAtZero: false
-          }
+          y: { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { font: { size: 11 }, color: '#64748b' }, beginAtZero: false }
         }
       }
     });
+
   } catch (e) {
     area.innerHTML = '<div class="error-msg">No se pudo conectar con el servicio de demanda en localhost:8001</div>';
   }
@@ -232,9 +254,9 @@ async function loadRiesgo() {
       return;
     }
 
-    const criticos   = riesgo.filter(m => typeof m.dias_restantes === 'number' && m.dias_restantes <= 5);
+    const criticos    = riesgo.filter(m => typeof m.dias_restantes === 'number' && m.dias_restantes <= 5);
     const advertencia = riesgo.filter(m => typeof m.dias_restantes === 'number' && m.dias_restantes > 5 && m.dias_restantes <= 15);
-    const normales   = riesgo.filter(m => typeof m.dias_restantes !== 'number' || m.dias_restantes > 15);
+    const normales    = riesgo.filter(m => typeof m.dias_restantes !== 'number' || m.dias_restantes > 15);
 
     const renderItem = m => {
       const dias = typeof m.dias_restantes === 'number' ? m.dias_restantes : null;
@@ -299,10 +321,9 @@ function cerrarSesion() {
   localStorage.removeItem('token');
   localStorage.removeItem('role');
   localStorage.removeItem('name');
-  window.location.href = '/inventario-clinica/backend/usuarios/Frontend/login.html';
+  window.location.href = 'login.html';
 }
 
-// Mostrar nombre del usuario logueado
 function mostrarUsuario() {
   const name = localStorage.getItem('name');
   const el = document.getElementById('user-name');

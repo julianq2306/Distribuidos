@@ -1,15 +1,28 @@
+# docker-compose.yml
+# Orquesta los microservicios del sistema clínico:
+# - usuarios: autenticación y gestión de usuarios (Node.js)
+# - demanda: predicción de demanda y alertas (FastAPI)
+# - inventario: gestión de medicamentos
+# - pgadmin: interfaz web para administrar PostgreSQL
+
 services:
 
+  # Servicio de autenticación y gestión de usuarios.
+  # Es el primer servicio en levantarse; los demás dependen de él.
   usuarios:
     build: ./backend/usuarios
     container_name: usuarios_service
     environment:
+      # Conexión a la base de datos en Supabase
       DATABASE_URL: postgresql://postgres.vzlrzsupvzyiqwetmgyt:distribuidos123@aws-1-us-east-2.pooler.supabase.com:6543/postgres?sslmode=disable
+      # Clave para firmar y verificar tokens JWT
       JWT_SECRET: clave_secreta_clinica_2024
     ports:
-      - "3000:3000"
-    restart: always
+      - "3000:3000"   # Expone el servicio en el puerto 3000 del host
+    restart: always   # Reinicia automáticamente si el contenedor falla
 
+  # Microservicio de predicción de demanda (FastAPI + statsmodels).
+  # Requiere que el servicio de usuarios esté activo para autenticar peticiones.
   demanda:
     build: ./backend/demanda
     container_name: demanda_service
@@ -19,8 +32,9 @@ services:
       - "8001:8001"
     restart: always
     depends_on:
-      - usuarios
+      - usuarios      # Garantiza que usuarios arranque antes que demanda
 
+  # Microservicio de inventario de medicamentos.
   inventario:
     build: ./backend/inventario
     container_name: inventario_service
@@ -32,6 +46,8 @@ services:
     depends_on:
       - usuarios
 
+  # Interfaz web de administración de PostgreSQL.
+  # Útil para inspeccionar la base de datos durante desarrollo.
   pgadmin:
     image: dpage/pgadmin4
     container_name: pgadmin_sdi
@@ -39,5 +55,5 @@ services:
       PGADMIN_DEFAULT_EMAIL: admin@admin.com
       PGADMIN_DEFAULT_PASSWORD: admin123
     ports:
-      - "5050:80"
+      - "5050:80"    # pgAdmin escucha en el 80 del contenedor, mapeado al 5050 del host
     restart: always

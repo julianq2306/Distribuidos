@@ -1,11 +1,20 @@
-fastapi==0.111.0
-uvicorn[standard]==0.29.0
-asyncpg==0.29.0
-pydantic==2.7.1
-statsmodels==0.14.2
-numpy==1.26.4
-scipy==1.13.0
-sqlalchemy==2.0.30
-psycopg2-binary==2.9.9
-pandas==2.2.2
-scikit-learn==1.5.0
+# ===== Framework web =====
+fastapi==0.111.0              # Framework principal para construir la API
+uvicorn[standard]==0.29.0     # Servidor ASGI para ejecutar FastAPI
+
+# ===== Base de datos =====
+asyncpg==0.29.0               # Driver asíncrono de PostgreSQL
+sqlalchemy==2.0.30            # ORM para modelado y consultas
+psycopg2-binary==2.9.9        # Driver síncrono de PostgreSQL (usado por SQLAlchemy)
+
+# ===== Validación =====
+pydantic==2.7.1               # Validación de datos y schemas
+
+# ===== Modelos y predicción =====
+statsmodels==0.14.2           # Modelos estadísticos (Holt-Winters, ExponentialSmoothing)
+scikit-learn==1.5.0           # Algoritmos de machine learning
+
+# ===== Cómputo numérico y datos =====
+numpy==1.26.4                 # Operaciones numéricas y arrays
+scipy==1.13.0                 # Funciones científicas y matemáticas
+pandas==2.2.2                 # Manipulación de series y dataframes
