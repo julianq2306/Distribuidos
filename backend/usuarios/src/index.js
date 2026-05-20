@@ -1,38 +1,52 @@
 const express = require('express');
-const cors = require('cors');
-const sequelize = require('./Config/database');
+const cors = require('cors');                          // Permite peticiones desde otros orígenes (frontend)
+const sequelize = require('./Config/database');        // Instancia de conexión a PostgreSQL
 
-const User = require('./models/User');
-const Rol     = require('./models/Rol');
-const Usuario = require('./models/Usuario');
-const Medicamento = require('./models/Medicamento');
-const Movimiento  = require('./models/Movimiento');
-const Alerta      = require('./models/Alerta');
-const SerieHistorica   = require('./models/SerieHistorica');
-const ModeloPrediccion = require('./models/ModeloPrediccion');
-const Prediccion       = require('./models/Prediccion');
+// ─── IMPORTACIÓN DE MODELOS ──────────────────────────────────────────────────
+// Módulo de usuarios
+const User     = require('./models/User');             // Usuario con autenticación JWT
+const Rol      = require('./models/Rol');              // Roles del sistema
+const Usuario  = require('./models/Usuario');          // Usuario interno con rol_id
 
-const authRoutes = require('./routes/auth.routes');
+// Módulo de inventario
+const Medicamento = require('./models/Medicamento');   // Medicamentos en stock
+const Movimiento  = require('./models/Movimiento');    // Entradas y salidas de medicamentos
+const Alerta      = require('./models/Alerta');        // Alertas de stock bajo o vencimiento
 
+// Módulo de demanda
+const SerieHistorica   = require('./models/SerieHistorica');   // Historial de consumo diario
+const ModeloPrediccion = require('./models/ModeloPrediccion'); // Modelos ML entrenados
+const Prediccion       = require('./models/Prediccion');       // Resultados de predicciones
+
+// ─── RUTAS ───────────────────────────────────────────────────────────────────
+const authRoutes = require('./routes/auth.routes');    // Rutas de autenticación
+
+// ─── CONFIGURACIÓN DE EXPRESS ────────────────────────────────────────────────
 const app = express();
-app.use(cors());
-app.use(express.json());
+app.use(cors());           // Habilitar CORS para todos los orígenes
+app.use(express.json());   // Parsear el body de las peticiones como JSON
 
+// Ruta raíz — verificar que el servicio está activo
 app.get('/', (req, res) => {
   res.send('Servicio de usuarios funcionando 🚀');
 });
 
+// Montar rutas de autenticación bajo el prefijo /auth
 app.use('/auth', authRoutes);
 
 const PORT = process.env.PORT || 3000;
 
+// ─── SINCRONIZACIÓN DE BASE DE DATOS ─────────────────────────────────────────
 const syncDatabase = async () => {
   try {
+    // Crear esquemas si no existen (organización por módulo en PostgreSQL)
     await sequelize.query(`CREATE SCHEMA IF NOT EXISTS usuarios`);
     await sequelize.query(`CREATE SCHEMA IF NOT EXISTS inventario`);
     await sequelize.query(`CREATE SCHEMA IF NOT EXISTS demanda`);
     console.log('✅ Esquemas verificados');
 
+    // Sincronizar tablas en orden (respetando dependencias entre modelos)
+    // force: false — no eliminar tablas existentes, solo crear si no existen
     await User.sync({ force: false });
     await Rol.sync({ force: false });
     await Usuario.sync({ force: false });
@@ -45,6 +59,8 @@ const syncDatabase = async () => {
 
     console.log('✅ Todas las tablas sincronizadas');
 
+    // ─── DATOS INICIALES (SEED) ───────────────────────────────────────────────
+    // Insertar roles y usuario admin solo si la tabla está vacía
     const rolesCount = await Rol.count();
     if (rolesCount === 0) {
       await Rol.bulkCreate([{ nombre: 'Administrador' }, { nombre: 'Empleado' }]);
@@ -52,6 +68,7 @@ const syncDatabase = async () => {
       console.log('✅ Roles y usuario admin insertados');
     }
 
+    // Insertar medicamento de ejemplo solo si el inventario está vacío
     const medCount = await Medicamento.count();
     if (medCount === 0) {
       await Medicamento.create({
@@ -75,9 +92,11 @@ const syncDatabase = async () => {
   }
 };
 
+// ─── INICIO DEL SERVIDOR ─────────────────────────────────────────────────────
+// Primero sincronizar la BD, luego levantar el servidor
 syncDatabase().then(() => {
   app.listen(PORT, () => console.log(`🚀 Servidor en puerto ${PORT}`));
 }).catch((err) => {
   console.error('❌ No se pudo iniciar:', err);
-  process.exit(1);
+  process.exit(1); // Terminar el proceso si la BD no conecta
 });
